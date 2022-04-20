@@ -1,0 +1,30 @@
+{
+  "name": "electron-ipc-hub",
+  "version": "0.1.0",
+  "description": "Promise backed IPC For Electron &amp; Typescript type prompt",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elmeet/electron-ipc-hub.git"
+  },
+  "keywords": [],
+  "author": "elmeet <elmeet@qq.com>",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/elmeet/electron-ipc-hub/issues"
+  },
+  "homepage": "https://github.com/elmeet/electron-ipc-hub#readme",
+  "devDependencies": {
+    "@types/electron": "^1.6.10"
+  },
+  "peerDependencies": {
+    "electron": "*"
+  },
+  "dependencies": {
+    "imitter": "^0.2.0"
+  }
+}
