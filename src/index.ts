@@ -6,42 +6,59 @@ const uniqueStringGenerate = (function () {
     return `${id}_${Date.now()}`;
   };
 })();
-const isString = (v) => typeof v === "string";
-const isFunction = (v) => typeof v === "function";
+const isString = (v: unknown): v is string => typeof v === "string";
+const isFunction = (v: unknown): v is (...args: unknown[]) => unknown =>
+  typeof v === "function";
 
 const EVENT_MAIN_LISTENRE_NAME = "ipc-main-asynchronous-listen";
 const EVENT_RENDERER_LISTENRE_NAME = "ipc-renderer-asynchronous-listen";
 const EVENT_RENDERER_LISTENRE_REPLAY_NAME =
   "ipc-renderer-asynchronous-replay-listen";
 
-function useMainHub(
+export type RendererToMainData = {
+  id: string;
+  data: unknown;
+  name: string;
+};
+
+export type MainToRendererData = {
+  data: unknown;
+  name: string;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Parameter<T extends (args: any) => any> = T extends (args: infer P) => any
+  ? P
+  : never;
+
+function useMainHub<
+  RendererToMain extends Record<string, (args: any) => any>,
+  MainToRenderer extends Record<string, unknown>
+>(
   {
     handlerBeforeEach = () => {},
     handlerAfterEach = () => {},
     sendToRendererBeforeEach = () => {},
     sendToRendererAfterEach = () => {},
+  }: {
+    handlerBeforeEach: (arg: RendererToMainData) => void;
+    handlerAfterEach: (arg: RendererToMainData) => void;
+    sendToRendererBeforeEach: (arg: MainToRendererData) => void;
+    sendToRendererAfterEach: (arg: MainToRendererData) => void;
   } = {
-    handlerBeforeEach: (...args) => {
-      console.log("[main] <<<", ...args);
-    },
-    handlerAfterEach: (...args) => {
-      console.log(`[main] >>> `, ...args);
-    },
-    sendToRendererBeforeEach: (...args) => {
-      console.log(`[main] >>>`, ...args);
-    },
-    sendToRendererAfterEach: (...args) => {
-      console.log(`[main] >>>`,...args);
-    },
+    handlerBeforeEach: () => {},
+    handlerAfterEach: () => {},
+    sendToRendererBeforeEach: () => {},
+    sendToRendererAfterEach: () => {},
   }
 ) {
-  const _all = new Map();
-  ipcMain.on(EVENT_MAIN_LISTENRE_NAME, (e, msg) => {
+  const _all: Map<string, Function> = new Map();
+  ipcMain.on(EVENT_MAIN_LISTENRE_NAME, (e, msg: RendererToMainData) => {
     handlerBeforeEach(msg);
     const handler = _all.get(msg.name);
     if (handler) {
       handler(msg.data)
-        .then((result) => {
+        .then((result: unknown) => {
           const replayData = {
             name: msg.name,
             id: msg.id,
@@ -51,7 +68,7 @@ function useMainHub(
           handlerAfterEach(replayData);
           e.reply(EVENT_RENDERER_LISTENRE_REPLAY_NAME, replayData);
         })
-        .catch((err) => {
+        .catch((err: Error) => {
           const replayData = {
             name: msg.name,
             id: msg.id,
@@ -75,8 +92,14 @@ function useMainHub(
     }
   });
 
+  type MainKey = keyof RendererToMain;
+  type MainHandler<K extends MainKey> = RendererToMain[K];
+
+  type RendererKey = keyof MainToRenderer;
+  type RendererHandler<K extends RendererKey> = MainToRenderer[K];
+
   const hub = {
-    on(name, handler) {
+    on<P extends MainKey>(name: P, handler: MainHandler<P>) {
       if (!isString(name)) {
         throw new TypeError("[electron-ipc-hub main] param name is not string");
       }
@@ -87,7 +110,7 @@ function useMainHub(
       }
       _all.set(name, handler);
     },
-    off(name) {
+    off<P extends MainKey>(name: P) {
       if (!isString(name)) {
         throw new TypeError("param name is not function");
       }
@@ -95,9 +118,13 @@ function useMainHub(
         _all.delete(name);
       }
     },
-    sendToRenderer(win, name, data) {
-      sendToRendererBeforeEach({ name, data });
-      if (!win instanceof BrowserWindow) {
+    sendToRenderer<P extends RendererKey>(
+      win: BrowserWindow,
+      name: P,
+      data: RendererHandler<P>
+    ) {
+      sendToRendererBeforeEach({ name: name as string, data });
+      if (!(win instanceof BrowserWindow)) {
         throw new TypeError(
           "[electron-ipc-hub main] param win is not BrowserWindow"
         );
@@ -113,7 +140,7 @@ function useMainHub(
       }
       sendToRendererAfterEach({ name, data });
     },
-    sendToRenderers(name, data) {
+    sendToRenderers<P extends RendererKey>(name: P, data: RendererHandler<P>) {
       if (!isString(name)) {
         throw new TypeError("[electron-ipc-hub main] param name is not string");
       }
@@ -125,29 +152,29 @@ function useMainHub(
   return hub;
 }
 
-function useRendererHub(
+function useRendererHub<
+  RendererToMain extends Record<string, (args: any) => any>,
+  MainToRenderer extends Record<string, unknown>
+>(
   {
     handlerBeforeEach = () => {},
     handlerAfterEach = () => {},
     sendToMainBeforeEach = () => {},
     sendToMainAfterEach = () => {},
+  }: {
+    handlerBeforeEach: (arg: MainToRendererData) => void;
+    handlerAfterEach: (arg: MainToRendererData) => void;
+    sendToMainBeforeEach: (arg: RendererToMainData) => void;
+    sendToMainAfterEach: (arg: RendererToMainData) => void;
   } = {
-    handlerBeforeEach: (...args) => {
-      console.log("[renderer] <<<", ...args);
-    },
-    handlerAfterEach: (...args) => {
-      console.log("[renderer] <<<", ...args);
-    },
-    sendToMainBeforeEach: (...args) => {
-      console.log("[renderer] >>>", ...args);
-    },
-    sendToMainAfterEach: (...args) => {
-      console.log("[renderer] <<<", ...args);
-    },
+    handlerBeforeEach: () => {},
+    handlerAfterEach: () => {},
+    sendToMainBeforeEach: () => {},
+    sendToMainAfterEach: () => {},
   }
 ) {
-  const _all = new Map();
-  const replays = new Map();
+  const _all: Map<string, Function[]> = new Map();
+  const replays: Map<string, Function> = new Map();
 
   ipcRenderer.on(EVENT_RENDERER_LISTENRE_NAME, (e, msg) => {
     handlerBeforeEach(msg);
@@ -169,8 +196,15 @@ function useRendererHub(
     }
   });
 
+  type MainKey = keyof RendererToMain;
+  type MainHandler<K extends MainKey> = RendererToMain[K];
+
+  type RendererKey = keyof MainToRenderer;
+  type FunctionByParam<K extends RendererKey> = (arg: MainToRenderer[K]) => any;
+
+
   const hub = {
-    on(name, handler) {
+    on<P extends RendererKey>(name: P, handler: FunctionByParam<P>) {
       if (!isString(name)) {
         throw new TypeError(
           "[electron-ipc-hub renderer] param name is not string"
@@ -187,7 +221,7 @@ function useRendererHub(
         _all.set(name, [handler]);
       }
     },
-    off(name, handler) {
+    off<P extends RendererKey>(name: P, handler: FunctionByParam<P>) {
       if (!isString(name)) {
         throw new TypeError(
           "[electron-ipc-hub renderer] param name is not string"
@@ -204,20 +238,26 @@ function useRendererHub(
       }
       const handlers = _all.get(name);
       if (handlers) {
-        handlers.splice(handlers.indexOf(handler) >>> 0, 1);
+        handlers.splice(
+          handlers.indexOf(handler as unknown as Function) >>> 0,
+          1
+        );
       }
     },
-    async sendToMain(name, data) {
+    async sendToMain<P extends MainKey>(
+      name: P,
+      data: Parameter<MainHandler<P>>
+    ): Promise<ReturnType<MainHandler<P>>> {
       const id = uniqueStringGenerate();
       const sendData = {
-        name,
+        name: name as string,
         id,
         data,
       };
       sendToMainBeforeEach(sendData);
       ipcRenderer.send(EVENT_MAIN_LISTENRE_NAME, sendData);
       return new Promise((resolve, reject) => {
-        replays.set(id, (err, data) => {
+        replays.set(id, (err: Error, data: ReturnType<MainHandler<P>>) => {
           err ? reject(err) : resolve(data);
         });
       });
