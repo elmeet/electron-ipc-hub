@@ -16,7 +16,7 @@ const isFunction = (v: unknown): v is (...args: unknown[]) => unknown =>
 const EVENT_MAIN_LISTENRE_NAME = "ipc-main-asynchronous-listen";
 const EVENT_RENDERER_LISTENRE_NAME = "ipc-renderer-asynchronous-listen";
 const EVENT_RENDERER_LISTENRE_REPLAY_NAME =
-  "ipc-renderer-asynchronous-replay-listen";
+  "ipc-renderer-asynchronous-reply-listen";
 
 export type RendererToMainData = {
   id: string;
@@ -42,55 +42,52 @@ type FunctionPromiseMayBe<T extends (args: any) => any> = T extends (
   ? ((args: P) => Promise<R>) | T
   : T;
 
-function useMainHub<
+export interface MainHubOptions {
+  onReceiveBeforeEach?: (arg: RendererToMainData) => void;
+  onReplyBeforeEach?: (arg: RendererToMainData) => void;
+  onSendBeforeEach?: (arg: MainToRendererData) => void;
+}
+
+export function useMainHub<
   RendererToMain extends Record<string, (args: any) => any>,
   MainToRenderer extends Record<string, unknown>
->(
-  {
-    handlerBeforeEach = () => {},
-    handlerAfterEach = () => {},
-    sendToRendererBeforeEach = () => {},
-    sendToRendererAfterEach = () => {},
-  }: {
-    handlerBeforeEach: (arg: RendererToMainData) => void;
-    handlerAfterEach: (arg: RendererToMainData) => void;
-    sendToRendererBeforeEach: (arg: MainToRendererData) => void;
-    sendToRendererAfterEach: (arg: MainToRendererData) => void;
-  } = {
-    handlerBeforeEach: () => {},
-    handlerAfterEach: () => {},
-    sendToRendererBeforeEach: () => {},
-    sendToRendererAfterEach: () => {},
-  }
-) {
+>(options?: MainHubOptions) {
+  const { onReceiveBeforeEach, onReplyBeforeEach, onSendBeforeEach } =
+    options || {};
   const _all: Map<string, Function> = new Map();
   ipcMain.on(EVENT_MAIN_LISTENRE_NAME, (e, msg: RendererToMainData) => {
-    handlerBeforeEach(msg);
+    if (isFunction(onReceiveBeforeEach)) {
+      onReceiveBeforeEach(msg);
+    }
     const handler = _all.get(msg.name);
     if (handler) {
       handler(msg.data)
         .then((result: unknown) => {
-          const replayData = {
+          const replyData = {
             name: msg.name,
             id: msg.id,
             err: null,
             data: result,
           };
-          handlerAfterEach(replayData);
-          e.reply(EVENT_RENDERER_LISTENRE_REPLAY_NAME, replayData);
+          if (isFunction(onReplyBeforeEach)) {
+            onReplyBeforeEach(replyData);
+          }
+          e.reply(EVENT_RENDERER_LISTENRE_REPLAY_NAME, replyData);
         })
         .catch((err: Error) => {
-          const replayData = {
+          const replyData = {
             name: msg.name,
             id: msg.id,
             err,
             data: undefined,
           };
-          handlerAfterEach(replayData);
-          e.reply(EVENT_RENDERER_LISTENRE_REPLAY_NAME, replayData);
+          if (isFunction(onReplyBeforeEach)) {
+            onReplyBeforeEach(replyData);
+          }
+          e.reply(EVENT_RENDERER_LISTENRE_REPLAY_NAME, replyData);
         });
     } else {
-      const replayData = {
+      const replyData = {
         name: msg.name,
         id: msg.id,
         err: new Error(
@@ -98,8 +95,10 @@ function useMainHub<
         ),
         data: undefined,
       };
-      handlerAfterEach(replayData);
-      e.reply(EVENT_RENDERER_LISTENRE_REPLAY_NAME, replayData);
+      if (isFunction(onReplyBeforeEach)) {
+        onReplyBeforeEach(replyData);
+      }
+      e.reply(EVENT_RENDERER_LISTENRE_REPLAY_NAME, replyData);
     }
   });
 
@@ -134,7 +133,10 @@ function useMainHub<
       name: P,
       data: RendererHandler<P>
     ) {
-      sendToRendererBeforeEach({ name: name as string, data });
+      if (isFunction(onSendBeforeEach)) {
+        onSendBeforeEach({ name: name as string, data });
+      }
+
       if (!(win instanceof BrowserWindow)) {
         throw new TypeError(
           "[electron-ipc-hub main] param win is not BrowserWindow"
@@ -149,7 +151,6 @@ function useMainHub<
           data,
         });
       }
-      sendToRendererAfterEach({ name, data });
     },
     sendToRenderers<P extends RendererKey>(name: P, data: RendererHandler<P>) {
       if (!isString(name)) {
@@ -163,47 +164,41 @@ function useMainHub<
   return hub;
 }
 
-function useRendererHub<
+export interface RendererHubOptions {
+  onReceiveBeforeEach?: (arg: MainToRendererData) => void;
+  onSendBackBeforeEach?: (arg: MainToRendererData) => void;
+  onSendBeforeEach?: (arg: RendererToMainData) => void;
+}
+
+export function useRendererHub<
   RendererToMain extends Record<string, (args: any) => any>,
   MainToRenderer extends Record<string, unknown>
->(
-  {
-    handlerBeforeEach = () => {},
-    handlerAfterEach = () => {},
-    sendToMainBeforeEach = () => {},
-    sendToMainAfterEach = () => {},
-  }: {
-    handlerBeforeEach: (arg: MainToRendererData) => void;
-    handlerAfterEach: (arg: MainToRendererData) => void;
-    sendToMainBeforeEach: (arg: RendererToMainData) => void;
-    sendToMainAfterEach: (arg: RendererToMainData) => void;
-  } = {
-    handlerBeforeEach: () => {},
-    handlerAfterEach: () => {},
-    sendToMainBeforeEach: () => {},
-    sendToMainAfterEach: () => {},
-  }
-) {
+>(options?: RendererHubOptions) {
+  const { onReceiveBeforeEach, onSendBackBeforeEach, onSendBeforeEach } =
+    options || {};
   const _all: Map<string, Function[]> = new Map();
-  const replays: Map<string, Function> = new Map();
+  const replys: Map<string, Function> = new Map();
 
   ipcRenderer.on(EVENT_RENDERER_LISTENRE_NAME, (e, msg) => {
-    handlerBeforeEach(msg);
+    if (isFunction(onReceiveBeforeEach)) {
+      onReceiveBeforeEach(msg);
+    }
     const handlers = _all.get(msg.name);
     if (handlers) {
       handlers.forEach((handler) => {
         handler(msg.data);
       });
     }
-    handlerAfterEach(msg);
   });
 
   ipcRenderer.on(EVENT_RENDERER_LISTENRE_REPLAY_NAME, (e, msg) => {
-    sendToMainAfterEach(msg);
-    const replayHandler = replays.get(msg.id);
-    if (replayHandler) {
-      replayHandler(msg.err, msg.data);
-      replays.delete(msg.id);
+    if (isFunction(onSendBackBeforeEach)) {
+      onSendBackBeforeEach(msg);
+    }
+    const replyHandler = replys.get(msg.id);
+    if (replyHandler) {
+      replyHandler(msg.err, msg.data);
+      replys.delete(msg.id);
     }
   });
 
@@ -264,10 +259,13 @@ function useRendererHub<
         id,
         data,
       };
-      sendToMainBeforeEach(sendData);
+      if (isFunction(onSendBeforeEach)) {
+        onSendBeforeEach(sendData);
+      }
+
       ipcRenderer.send(EVENT_MAIN_LISTENRE_NAME, sendData);
       return new Promise((resolve, reject) => {
-        replays.set(id, (err: Error, data: ReturnType<MainHandler<P>>) => {
+        replys.set(id, (err: Error, data: ReturnType<MainHandler<P>>) => {
           err ? reject(err) : resolve(data);
         });
       });
@@ -275,5 +273,3 @@ function useRendererHub<
   };
   return hub;
 }
-
-export { useMainHub, useRendererHub };
