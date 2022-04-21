@@ -1,6 +1,6 @@
 <h1 align="center">Electron-Ipc-Hub</h1>
 
-英语 | [简体中文](./README.zh-CN.md)
+english | [简体中文](./README.zh-CN.md)
 
 <h4>Promise backed IPC For Electron &amp; Typescript type prompt<h4>
 

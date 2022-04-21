@@ -2,7 +2,7 @@
 
 <h1 align="center">Electron-Ipc-Hub</h1>
 
-简体中文 | [英语](./README.md) 
+简体中文 | [english](./README.md) 
 
 
 <h4>简单的 electron ipc 通信, Typescript 完整支持, 可对通信类型定义和约束<h4>
