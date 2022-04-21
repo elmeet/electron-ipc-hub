@@ -1,14 +1,17 @@
+
+
 <h1 align="center">Electron-Ipc-Hub</h1>
 
-英语 | [简体中文](./README.zh-CN.md)
+简体中文 | [英语](./README.md) 
 
-<h4>Promise backed IPC For Electron &amp; Typescript type prompt<h4>
 
-## Table of Contents
+<h4>简单的 electron ipc 通信, Typescript 完整支持, 可对通信类型定义和约束<h4>
 
-- [Features](#features)
-- [Install](#install)
-- [Example](#example)
+## 📝 目录
+
+- [功能](#features)
+- [安装](#install)
+- [例子](#example)
 - [API](#usage)
   - [useMainHub](#useMainHub)
     - [on](#useMainHub)
@@ -20,33 +23,34 @@
     - [off](#useRendererHub)
     - [sendToMain](#useRendererHub)
   - [hooks](#hooks)
-## Features
 
-- **Simple api**
-- **Size**: less than 4kb gzipped(even smaller with tree-shaking), no external dependencies required
-- **Promise support**
-- **Typescript support**: this utility is written in typescript, has type definition inborn
-- **hooks**: Support the call of communication hook, which is convenient to view communication data and debugger
+## 特征
 
-## Install
+- **简单的 api**
+- **大小**: gzip 压缩后小于 4kb, 没有其他依赖
+- **Promise 支持**
+- **Typescript 支持**: 使用 typescript 编写, 类型提示, 且可对通信类型定义和约束
+- **钩子**: 支持通讯钩子调用, 方便查看通讯数据和 debugger
 
-use yarn
+## 安装
+
+使用 yarn
 
 ```sh
 yarn add electron-ipc-hub
 ```
 
-or npm
+或者 npm
 
 ```sh
 npm install electron-ipc-hub -S
 ```
 
-## Example:
+## 例子:
 
-### use typescript
+### 使用 typescript
 
-**Define type**
+**定义类型**
 
 ```typescript
 type RendererToMain = {
@@ -58,15 +62,15 @@ type MainToRenderer = {
 };
 ```
 
-After introducing types, you will get type constraints and prompts
+引入类型, 后续将获得类型约束和提示
 
-**renderer => main => renderer**
+**渲染进程 => 主进程 => 渲染进程**
 
 ```typescript
 // main
 const mainHub = useMainHub<RendererToMain, MainToRenderer>();
 
-// You will get type constraints and tips below
+// 以下将获得类型约束和提示
 mainHub.on("get-title", async function (num) {
   return "pong" + num;
 });
@@ -81,24 +85,24 @@ async function fn() {
 fn();
 ```
 
-**main => renderer**
+**主进程 => 渲染进程**
 
 ```typescript
-// main 
-mainHub.sendToRenderers("set-title", "This is new title");
+// main 主进程
+mainHub.sendToRenderers("set-title", "这是一个新 title");
 
-// renderer
+// 渲染进程
 rendererHub.on("set-title", function (title) {
   document.title = title;
 });
 ```
 
-### use javascript
+### 使用 javascript
 
-**renderer => main => renderer**
+**渲染进程 => 主进程 => 渲染进程**
 
 ```javascript
-// in main
+// 主进程 main
 const { useMainHub } = require("electron-ipc-hub");
 const mainHub = useMainHub();
 
@@ -106,7 +110,7 @@ mainHub.on("ping", async function (num) {
   return "pong" + num;
 });
 
-// in renderer
+// 渲染进程 renderer
 const { useRendererHub } = require("electron-ipc-hub");
 const rendererHub = useRendererHub();
 
@@ -117,16 +121,16 @@ async function fn() {
 fn();
 ```
 
-**main => renderer**
+**主进程 => 渲染进程**
 
 ```javascript
-// in renderer
+// 渲染进程
 rendererHub.on("change-title", (title) => {
   document.title = title;
 });
 
-// in main
-mainHub.sendToRenderer(win, "change-title", "This is new title");
+// 主进程
+mainHub.sendToRenderer(win, "change-title", "我是一个新 title");
 ```
 
 ## API
@@ -137,46 +141,46 @@ mainHub.sendToRenderer(win, "change-title", "This is new title");
 
 - options
 
-  - `onReceiveBeforeEach` (param: ChannelData) => void (optional)
-  - `onReplyBeforeEach` (param: ChannelData) => void (optional)
-  - `onSendBeforeEach` (param: ChannelData) => void (optional)
+  - `onReceiveBeforeEach` (param: ChannelData) => void (可选)
+  - `onReplyBeforeEach` (param: ChannelData) => void (可选)
+  - `onSendBeforeEach` (param: ChannelData) => void (可选)
 
 - mainHub.on(name, fn)
-  - name: `string` (required) Name of listening event
-  - fn: `function` (required) Execution function of listening event
-    tips: Due to the need to respond to the request from the renderer, the same name can only be bound once, and the duplicate 'name' will overwrite the previous event with the same name
+  - name: `string` (必选) 监听事件的名称
+  - fn: `function` (必选) 监听事件的执行函数
+    tips: 由于需要响应来自渲染进程的请求, 相同名称仅可绑定一次, 重复的`name`将覆盖之前同名的事件
 - mainHub.off(name)
-  - name: `string` (required) Name of listening event
+  - name: `string` (必选) 监听事件的名称
 - mainHub.sendToRenderer(win, name, data)
-  - win: `BrowserWindow` 
-  - name: `string` (required) Name of listening event
-  - data: `string` | `boolean` | `number` | `array` | `object` ...等 (Your custom data type)
+  - win: `BrowserWindow` 要发送数据的窗口
+  - name: `string` (必选) 监听事件的名称
+  - data: `string` | `boolean` | `number` | `array` | `object` ...等 (你自定义的数据类型)
 - mainHub.sendToRenderers(name, data)
-  - name: `string` (required)
-  - data: `string` | `boolean` | `number` | `array` | `object` ...等 (Your custom data type)
+  - name: `string` (必选)
+  - data: `string` | `boolean` | `number` | `array` | `object` ...等 (你自定义的数据类型)
 
 ### useRendererHub
 
 **useRendererHub([options])**
 
 - options
-  - `onReceiveBeforeEach` (param: ChannelData) => void (optional)
-  - `onSendBackBeforeEach` (param: ChannelData) => void (optional)
-  - `onSendBeforeEach` (param: ChannelData) => void (optional)
+  - `onReceiveBeforeEach` (param: ChannelData) => void (可选)
+  - `onSendBackBeforeEach` (param: ChannelData) => void (可选)
+  - `onSendBeforeEach` (param: ChannelData) => void (可选)
 - rendererHub.on(name, fn)
-  - name: `string` (required) Name of listening event
-  - fn: `function` (required) Execution function of listening event
+  - name: `string` (必选) 监听事件的名称
+  - fn: `function` (必选) 监听事件的执行函数
 - rendererHub.off(name, fn)
-  - name: `string` (required) Name of listening event
-  - fn: `function` (optional), Default empty, If it is empty, all the function events named `name` above will be removed
+  - name: `string` (必选) 监听事件的名称
+  - fn: `function` (可选), 默认为空, 为空则移除所有绑定以上名为 `name` 的函数事件
 - rendererHub.sendToMain(name, data)
-  - name: `string` (required) Name of listening event
-  - data: `string` | `boolean` | `number` | `array` | `object` ... (required) (Your custom data type)
-  - @return `Promise<response>` `response` 为Your custom data type
+  - name: `string` (必选) 监听事件的名称
+  - data: `string` | `boolean` | `number` | `array` | `object` ...等 (必选) (你自定义的数据类型)
+  - @return `Promise<response>` `response` 为你自定义的数据类型
 
 ### hooks
 
-The 'options' passed in `usemainhub` or `userendererhub` will be executed at a specific stage, for example:
+在 `useMainHub` 或 `useRendererHub` 传入的 `options` 会在特定阶段执行, 例如:
 
 ```typescript
 // main
@@ -206,17 +210,17 @@ const rendererHub = useRendererHub({
 });
 
 
-// channel: renderer => main => renderer
-// Hooks are executed in the following order
+// 通信: 渲染进程 => 主进程 => 渲染进程
+// 钩子会按以下顺序执行
 [renderer]onSendBeforeEach -> [main]onReceiveBeforeEach -> [main]onReplyBeforeEach -> [renderer]onSendBackBeforeEach
 
-// channel: main => renderer
-// Hooks are executed in the following order
+// 通信: 主进程 => 渲染进程
+// 钩子会按以下顺序执行
 [main]onSendBeforeEach -> [renderer]onReceiveBeforeEach
 
 ```
 
-renderer => main => renderer
+例子: 渲染进程 => 主进程 => 渲染进程
 
 ```typescript
 // main
@@ -230,14 +234,14 @@ async function fn() {
 }
 fn();
 
-// print results:
+// 以上打印结果:
 // <<< [send] {name: 'ping', id: '1_1650525606946', data: 1}
 // <<< [receive] { name: 'ping', id: '1_1650525606946', data: 1 }
 // <<< [reply] { name: 'ping', id: '1_1650525606946', err: null, data: 'pong1' }
 // <<< [send back] {name: 'ping', id: '1_1650525606946', err: null, data: 'pong1'}
 ```
 
-Debugger with hooks
+借助 hooks 进行 debugger
 
 ```typescript
 const rendererHub = useRendererHub({
