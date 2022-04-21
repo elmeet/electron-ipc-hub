@@ -3,6 +3,9 @@ const uniqueStringGenerate = (function () {
   let id = 0;
   return function () {
     id++;
+    if (id >= Number.MAX_SAFE_INTEGER) {
+      id = 0;
+    }
     return `${id}_${Date.now()}`;
   };
 })();
@@ -30,6 +33,14 @@ export type MainToRendererData = {
 type Parameter<T extends (args: any) => any> = T extends (args: infer P) => any
   ? P
   : never;
+
+type FunctionPromiseMayBe<T extends (args: any) => any> = T extends (
+  args: any
+) => Promise<any>
+  ? T
+  : T extends (args: infer P) => infer R
+  ? ((args: P) => Promise<R>) | T
+  : T;
 
 function useMainHub<
   RendererToMain extends Record<string, (args: any) => any>,
@@ -93,7 +104,7 @@ function useMainHub<
   });
 
   type MainKey = keyof RendererToMain;
-  type MainHandler<K extends MainKey> = RendererToMain[K];
+  type MainHandler<K extends MainKey> = FunctionPromiseMayBe<RendererToMain[K]>;
 
   type RendererKey = keyof MainToRenderer;
   type RendererHandler<K extends RendererKey> = MainToRenderer[K];
@@ -197,11 +208,10 @@ function useRendererHub<
   });
 
   type MainKey = keyof RendererToMain;
-  type MainHandler<K extends MainKey> = RendererToMain[K];
+  type MainHandler<K extends MainKey> = FunctionPromiseMayBe<RendererToMain[K]>;
 
   type RendererKey = keyof MainToRenderer;
   type FunctionByParam<K extends RendererKey> = (arg: MainToRenderer[K]) => any;
-
 
   const hub = {
     on<P extends RendererKey>(name: P, handler: FunctionByParam<P>) {
