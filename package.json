@@ -11,7 +11,12 @@
     "type": "git",
     "url": "git+https://github.com/elmeet/electron-ipc-hub.git"
   },
-  "keywords": [],
+  "keywords": [
+    "electron",
+    "promise",
+    "ipc",
+    "channel"
+  ],
   "author": "elmeet <elmeet@qq.com>",
   "license": "UNLICENSED",
   "bugs": {
