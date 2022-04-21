@@ -48,10 +48,16 @@ export interface MainHubOptions {
   onSendBeforeEach?: (arg: MainToRendererData) => void;
 }
 
+let singleMainHub: unknown | null = null;
+
 export function useMainHub<
   RendererToMain extends Record<string, (args: any) => any>,
   MainToRenderer extends Record<string, unknown>
 >(options?: MainHubOptions) {
+  if (singleMainHub) {
+    return singleMainHub as typeof hub;
+  }
+
   const { onReceiveBeforeEach, onReplyBeforeEach, onSendBeforeEach } =
     options || {};
   const _all: Map<string, Function> = new Map();
@@ -161,6 +167,8 @@ export function useMainHub<
       });
     },
   };
+
+  singleMainHub = hub;
   return hub;
 }
 
@@ -170,10 +178,16 @@ export interface RendererHubOptions {
   onSendBeforeEach?: (arg: RendererToMainData) => void;
 }
 
+let singleRendererHub: unknown | null = null;
+
 export function useRendererHub<
   RendererToMain extends Record<string, (args: any) => any>,
   MainToRenderer extends Record<string, unknown>
 >(options?: RendererHubOptions) {
+  if (singleRendererHub) {
+    return singleRendererHub as typeof hub;
+  }
+
   const { onReceiveBeforeEach, onSendBackBeforeEach, onSendBeforeEach } =
     options || {};
   const _all: Map<string, Function[]> = new Map();
@@ -271,5 +285,6 @@ export function useRendererHub<
       });
     },
   };
+  singleRendererHub = hub;
   return hub;
 }
