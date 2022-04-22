@@ -31,8 +31,5 @@
   },
   "peerDependencies": {
     "electron": "*"
-  },
-  "dependencies": {
-    "imitter": "^0.2.0"
   }
 }
