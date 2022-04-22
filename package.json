@@ -18,10 +18,13 @@
     "channel"
   ],
   "author": "elmeet <elmeet@qq.com>",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/elmeet/electron-ipc-hub/issues"
   },
+  "files": [
+    "dist"
+  ],
   "homepage": "https://github.com/elmeet/electron-ipc-hub#readme",
   "devDependencies": {
     "@types/electron": "^1.6.10"
