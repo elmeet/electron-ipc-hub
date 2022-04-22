@@ -54,6 +54,9 @@ export function useMainHub<
   RendererToMain extends Record<string, (args: any) => any>,
   MainToRenderer extends Record<string, unknown>
 >(options?: MainHubOptions) {
+  if(process.type === 'renderer'){
+    throw new Error('You should call this function in the main process')
+  }
   if (singleMainHub) {
     return singleMainHub as typeof hub;
   }
@@ -184,6 +187,9 @@ export function useRendererHub<
   RendererToMain extends Record<string, (args: any) => any>,
   MainToRenderer extends Record<string, unknown>
 >(options?: RendererHubOptions) {
+  if(process.type !== 'renderer'){
+    throw new Error('You should call this function in the rendering process')
+  }
   if (singleRendererHub) {
     return singleRendererHub as typeof hub;
   }
