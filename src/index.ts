@@ -34,13 +34,20 @@ type Parameter<T extends (args: any) => any> = T extends (args: infer P) => any
   ? P
   : never;
 
-type FunctionPromiseMayBe<T extends (args: any) => any> = T extends (
+type FunctionPromiseMayBe<T extends (...args: any) => any> = T extends (
   args: any
 ) => Promise<any>
   ? T
   : T extends (args: infer P) => infer R
   ? ((args: P) => Promise<R>) | T
   : T;
+
+type PromiseResolveType<T> = T extends Promise<infer R> ? R : T;
+type ReturnResolveType<T extends (...args: any) => any> = T extends (
+  ...args: any
+) => infer R
+  ? PromiseResolveType<R>
+  : any;
 
 export interface MainHubOptions {
   onReceiveBeforeEach?: (arg: RendererToMainData) => void;
@@ -54,8 +61,8 @@ export function useMainHub<
   RendererToMain extends Record<string, (args: any) => any>,
   MainToRenderer extends Record<string, unknown>
 >(options?: MainHubOptions) {
-  if(process.type === 'renderer'){
-    throw new Error('You should call this function in the main process')
+  if (process.type === "renderer") {
+    throw new Error("You should call this function in the main process");
   }
   if (singleMainHub) {
     return singleMainHub as typeof hub;
@@ -187,8 +194,8 @@ export function useRendererHub<
   RendererToMain extends Record<string, (args: any) => any>,
   MainToRenderer extends Record<string, unknown>
 >(options?: RendererHubOptions) {
-  if(process.type !== 'renderer'){
-    throw new Error('You should call this function in the rendering process')
+  if (process.type !== "renderer") {
+    throw new Error("You should call this function in the rendering process");
   }
   if (singleRendererHub) {
     return singleRendererHub as typeof hub;
@@ -272,7 +279,7 @@ export function useRendererHub<
     async sendToMain<P extends MainKey>(
       name: P,
       data: Parameter<MainHandler<P>>
-    ): Promise<ReturnType<MainHandler<P>>> {
+    ): Promise<ReturnResolveType<MainHandler<P>>> {
       const id = uniqueStringGenerate();
       const sendData = {
         name: name as string,
@@ -285,9 +292,12 @@ export function useRendererHub<
 
       ipcRenderer.send(EVENT_MAIN_LISTENRE_NAME, sendData);
       return new Promise((resolve, reject) => {
-        replys.set(id, (err: Error, data: ReturnType<MainHandler<P>>) => {
-          err ? reject(err) : resolve(data);
-        });
+        replys.set(
+          id,
+          (err: Error, data: ReturnResolveType<MainHandler<P>>) => {
+            err ? reject(err) : resolve(data);
+          }
+        );
       });
     },
   };
