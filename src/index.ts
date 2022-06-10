@@ -77,7 +77,7 @@ export function useMainHub<
     }
     const handler = _all.get(msg.name);
     if (handler) {
-      handler(msg.data)
+      Promise.resolve(handler(msg.data))
         .then((result: unknown) => {
           const replyData = {
             name: msg.name,
