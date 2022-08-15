@@ -276,6 +276,14 @@ export function useRendererHub<
         );
       }
     },
+    offAll<P extends RendererKey>(name: P) {
+      if (!isString(name)) {
+        throw new TypeError(
+          "[electron-ipc-hub renderer] param name is not string"
+        );
+      }
+      _all.delete(name);
+    },
     async sendToMain<P extends MainKey>(
       name: P,
       data: Parameter<MainHandler<P>>

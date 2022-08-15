@@ -1,6 +1,6 @@
 {
   "name": "electron-ipc-hub",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Promise backed IPC For Electron &amp; Typescript type prompt",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
